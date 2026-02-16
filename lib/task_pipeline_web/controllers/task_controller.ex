@@ -24,4 +24,8 @@ defmodule TaskPipelineWeb.TaskController do
     task = Tasks.get_task!(id)
     render(conn, :show, task: task)
   end
+
+  def summary(conn, _) do
+    render(conn, :summary, info: Tasks.get_summary())
+  end
 end

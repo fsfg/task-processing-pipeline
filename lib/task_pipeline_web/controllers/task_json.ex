@@ -27,4 +27,8 @@ defmodule TaskPipelineWeb.TaskJSON do
       version: task.version
     }
   end
+
+  def summary(%{info: info}) do
+    %{data: info}
+  end
 end

@@ -65,4 +65,10 @@ defmodule TaskPipeline.Tasks do
     |> Task.update_changeset(%{status: status})
     |> Repo.update()
   end
+
+  def get_summary do
+    from(t in Task, group_by: :status, select: {t.status, count(1)})
+    |> Repo.all()
+    |> Enum.into(%{})
+  end
 end

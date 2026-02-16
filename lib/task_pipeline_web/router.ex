@@ -10,6 +10,7 @@ defmodule TaskPipelineWeb.Router do
 
     post "/tasks", TaskController, :create
     get "/tasks", TaskController, :index
+    get "/tasks/summary", TaskController, :summary
     get "/tasks/:id", TaskController, :show
   end
 
