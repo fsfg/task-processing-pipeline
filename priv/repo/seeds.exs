@@ -10,23 +10,25 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-alias TaskPipeline.Repo
-alias TaskPipeline.Tasks.Task
+if Mix.env() == :dev do
+  alias TaskPipeline.Repo
+  alias TaskPipeline.Tasks.Task
 
-for i <- 1..100,
-    status <- [:queued, :processing, :completed, :failed],
-    type <- [:import, :export, :report, :cleanup],
-    priority <- [:low, :normal, :high, :critical] do
-  Repo.insert!(%Task{
-    title: "Task #{i}-#{type}-#{status}-#{priority}",
-    type: type,
-    status: status,
-    priority: priority,
-    payload: %{
+  for i <- 1..100,
+      status <- [:queued, :processing, :completed, :failed],
+      type <- [:import, :export, :report, :cleanup],
+      priority <- [:low, :normal, :high, :critical] do
+    Repo.insert!(%Task{
+      title: "Task #{i}-#{type}-#{status}-#{priority}",
       type: type,
       status: status,
       priority: priority,
-      i: i
-    }
-  })
+      payload: %{
+        type: type,
+        status: status,
+        priority: priority,
+        i: i
+      }
+    })
+  end
 end
