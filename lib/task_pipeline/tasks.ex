@@ -67,8 +67,11 @@ defmodule TaskPipeline.Tasks do
   end
 
   def get_summary do
+    default_values =
+      Task |> Ecto.Enum.values(:status) |> Map.from_keys(0)
+
     from(t in Task, group_by: :status, select: {t.status, count(1)})
     |> Repo.all()
-    |> Enum.into(%{})
+    |> Enum.into(default_values)
   end
 end
