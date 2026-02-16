@@ -22,6 +22,10 @@ config :task_pipeline, TaskPipelineWeb.Endpoint,
   pubsub_server: TaskPipeline.PubSub,
   live_view: [signing_salt: "kpcjVh4I"]
 
+config :task_pipeline, TaskPipeline.Repo,
+  migration_primary_key: [name: :id, type: :uuid],
+  migration_timestamps: [type: :utc_datetime_usec]
+
 # Configure the mailer
 #
 # By default it uses the "Local" adapter which stores the emails
