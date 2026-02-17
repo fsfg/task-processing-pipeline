@@ -72,6 +72,15 @@ defmodule TaskPipeline.Nodes do
     |> Repo.update()
   end
 
+  def update_node_instance_last_active(id, last_active \\ DateTime.utc_now()) do
+    {:ok, _} =
+      %NodeInstance{id: id}
+      |> NodeInstance.last_active_changeset(%{last_active: last_active})
+      |> Repo.update()
+
+    :ok
+  end
+
   @doc """
   Deletes a node_instance.
 

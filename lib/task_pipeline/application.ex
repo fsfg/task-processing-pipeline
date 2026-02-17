@@ -10,7 +10,7 @@ defmodule TaskPipeline.Application do
     children = [
       TaskPipelineWeb.Telemetry,
       TaskPipeline.Repo,
-      {TaskPipeline.Node, %{}},
+      {TaskPipeline.Nodes.CurrentNode, %{}},
       {DNSCluster, query: Application.get_env(:task_pipeline, :dns_cluster_query) || :ignore},
       {Oban, Application.fetch_env!(:task_pipeline, Oban)},
       {Phoenix.PubSub, name: TaskPipeline.PubSub},
