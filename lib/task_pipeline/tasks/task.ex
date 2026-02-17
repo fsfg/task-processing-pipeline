@@ -1,6 +1,7 @@
 defmodule TaskPipeline.Tasks.Task do
   use TaskPipeline.Schema
   import Ecto.Changeset
+  alias TaskPipeline.Tasks.TaskStatuses
 
   schema "tasks" do
     field :title, :string
@@ -8,7 +9,7 @@ defmodule TaskPipeline.Tasks.Task do
     field :priority, Ecto.Enum, values: [low: 3, normal: 2, high: 1, critical: 0]
     field :payload, :map
     field :max_attempts, :integer
-    field :status, Ecto.Enum, values: [:queued, :processing, :completed, :failed], default: :queued
+    field :status, Ecto.Enum, values: TaskStatuses.all_statuses(), default: :queued
     field :version, :integer, default: 1
 
     timestamps()

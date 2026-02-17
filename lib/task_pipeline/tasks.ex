@@ -4,9 +4,12 @@ defmodule TaskPipeline.Tasks do
   """
 
   import Ecto.Query, warn: false
+  alias TaskPipeline.Tasks.TaskProgress
   alias TaskPipeline.Repo
 
   alias TaskPipeline.Tasks.Task
+
+  alias Ecto.Multi
 
   @doc """
   Returns the list of tasks.
@@ -80,13 +83,22 @@ defmodule TaskPipeline.Tasks do
 
   """
   def create_task(attrs) do
-    %Task{}
-    |> Task.create_changeset(attrs)
-    |> Repo.insert()
+    Multi.new()
+    |> Multi.insert(:task, Task.create_changeset(%Task{}, attrs))
+    |> Multi.insert(:task_progress, fn %{task: task} ->
+      TaskProgress.changeset(%TaskProgress{}, %{
+        start_time: DateTime.utc_now(),
+        status: task.status,
+        task_id: task.id,
+        node_id: TaskPipeline.Nodes.CurrentNode.node_id()
+      })
+    end)
+    |> Repo.transact()
   end
 
   def create_task!(attrs) do
-    {:ok, task} = create_task(attrs)
+    {:ok, %{task: task}} = create_task(attrs)
+
     get_task!(task.id)
   end
 
@@ -103,5 +115,101 @@ defmodule TaskPipeline.Tasks do
     from(t in Task, group_by: :status, select: {t.status, count(1)})
     |> Repo.all()
     |> Enum.into(default_values)
+  end
+
+  alias TaskPipeline.Tasks.TaskProgress
+
+  @doc """
+  Returns the list of task_progress.
+
+  ## Examples
+
+      iex> list_task_progress()
+      [%TaskProgress{}, ...]
+
+  """
+  def list_task_progress do
+    Repo.all(TaskProgress)
+  end
+
+  @doc """
+  Gets a single task_progress.
+
+  Raises `Ecto.NoResultsError` if the Task progress does not exist.
+
+  ## Examples
+
+      iex> get_task_progress!(123)
+      %TaskProgress{}
+
+      iex> get_task_progress!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_task_progress!(id), do: Repo.get!(TaskProgress, id)
+
+  @doc """
+  Creates a task_progress.
+
+  ## Examples
+
+      iex> create_task_progress(%{field: value})
+      {:ok, %TaskProgress{}}
+
+      iex> create_task_progress(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_task_progress(attrs) do
+    %TaskProgress{}
+    |> TaskProgress.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a task_progress.
+
+  ## Examples
+
+      iex> update_task_progress(task_progress, %{field: new_value})
+      {:ok, %TaskProgress{}}
+
+      iex> update_task_progress(task_progress, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_task_progress(%TaskProgress{} = task_progress, attrs) do
+    task_progress
+    |> TaskProgress.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a task_progress.
+
+  ## Examples
+
+      iex> delete_task_progress(task_progress)
+      {:ok, %TaskProgress{}}
+
+      iex> delete_task_progress(task_progress)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_task_progress(%TaskProgress{} = task_progress) do
+    Repo.delete(task_progress)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking task_progress changes.
+
+  ## Examples
+
+      iex> change_task_progress(task_progress)
+      %Ecto.Changeset{data: %TaskProgress{}}
+
+  """
+  def change_task_progress(%TaskProgress{} = task_progress, attrs \\ %{}) do
+    TaskProgress.changeset(task_progress, attrs)
   end
 end

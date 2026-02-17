@@ -37,7 +37,7 @@ defmodule TaskPipeline.TasksTest do
         payload: %{}
       }
 
-      assert {:ok, %Task{} = task} = Tasks.create_task(valid_attrs)
+      assert {:ok, %{task: %Task{} = task}} = Tasks.create_task(valid_attrs)
       assert task.priority == :low
       assert task.status == :queued
       assert task.type == :import
@@ -48,7 +48,7 @@ defmodule TaskPipeline.TasksTest do
     end
 
     test "create_task/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Tasks.create_task(@invalid_attrs)
+      assert {:error, :task, %Ecto.Changeset{}, _} = Tasks.create_task(@invalid_attrs)
     end
 
     test "change_status/2 with valid data updates status" do
@@ -73,6 +73,82 @@ defmodule TaskPipeline.TasksTest do
       end
 
       assert Tasks.get_task!(task.id).status == :processing
+    end
+  end
+
+  describe "task_progress" do
+    alias TaskPipeline.Tasks.TaskProgress
+
+    import TaskPipeline.TasksFixtures
+
+    @invalid_attrs %{status: nil, metadata: nil, start_time: nil, end_time: nil}
+
+    test "list_task_progress/0 returns all task_progress" do
+      task_progress = task_progress_fixture()
+      assert Tasks.list_task_progress() == [task_progress]
+    end
+
+    test "get_task_progress!/1 returns the task_progress with given id" do
+      task_progress = task_progress_fixture()
+      assert Tasks.get_task_progress!(task_progress.id) == task_progress
+    end
+
+    test "create_task_progress/1 with valid data creates a task_progress" do
+      valid_attrs = %{
+        status: :queued,
+        metadata: %{},
+        start_time: ~U[2026-02-16 18:43:00.000000Z],
+        end_time: ~U[2026-02-16 18:43:00.000000Z]
+      }
+
+      assert {:ok, %TaskProgress{} = task_progress} = Tasks.create_task_progress(valid_attrs)
+      assert task_progress.status == :queued
+      assert task_progress.metadata == %{}
+      assert task_progress.start_time == ~U[2026-02-16 18:43:00.000000Z]
+      assert task_progress.end_time == ~U[2026-02-16 18:43:00.000000Z]
+    end
+
+    test "create_task_progress/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Tasks.create_task_progress(@invalid_attrs)
+    end
+
+    test "update_task_progress/2 with valid data updates the task_progress" do
+      task_progress = task_progress_fixture()
+
+      update_attrs = %{
+        status: :processing,
+        metadata: %{},
+        start_time: ~U[2026-02-17 18:43:00.000000Z],
+        end_time: ~U[2026-02-17 18:43:00.000000Z]
+      }
+
+      assert {:ok, %TaskProgress{} = task_progress} =
+               Tasks.update_task_progress(task_progress, update_attrs)
+
+      assert task_progress.status == :processing
+      assert task_progress.metadata == %{}
+      assert task_progress.start_time == ~U[2026-02-17 18:43:00.000000Z]
+      assert task_progress.end_time == ~U[2026-02-17 18:43:00.000000Z]
+    end
+
+    test "update_task_progress/2 with invalid data returns error changeset" do
+      task_progress = task_progress_fixture()
+
+      assert {:error, %Ecto.Changeset{}} =
+               Tasks.update_task_progress(task_progress, @invalid_attrs)
+
+      assert task_progress == Tasks.get_task_progress!(task_progress.id)
+    end
+
+    test "delete_task_progress/1 deletes the task_progress" do
+      task_progress = task_progress_fixture()
+      assert {:ok, %TaskProgress{}} = Tasks.delete_task_progress(task_progress)
+      assert_raise Ecto.NoResultsError, fn -> Tasks.get_task_progress!(task_progress.id) end
+    end
+
+    test "change_task_progress/1 returns a task_progress changeset" do
+      task_progress = task_progress_fixture()
+      assert %Ecto.Changeset{} = Tasks.change_task_progress(task_progress)
     end
   end
 end

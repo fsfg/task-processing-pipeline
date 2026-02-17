@@ -19,4 +19,9 @@ defmodule TaskPipeline.Nodes.CurrentNode do
   def refresh_last_active() do
     TaskPipeline.Nodes.update_node_instance_last_active(node_id())
   end
+
+  if Mix.env() == :test do
+    defoverridable(node_id: 0)
+    def node_id(), do: compute_value()
+  end
 end
