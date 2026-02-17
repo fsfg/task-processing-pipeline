@@ -4,8 +4,8 @@ defmodule TaskPipelineWeb.TaskJSON do
   @doc """
   Renders a list of tasks.
   """
-  def index(%{tasks: tasks}) do
-    %{data: for(task <- tasks, do: data(task))}
+  def index(%{tasks: tasks, cursor: cursor}) do
+    %{data: for(task <- tasks, do: data(task)), cursor: cursor}
   end
 
   @doc """

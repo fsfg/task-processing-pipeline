@@ -21,6 +21,36 @@ defmodule TaskPipeline.Tasks do
     Repo.all(Task)
   end
 
+  def list_tasks(params) do
+    filtered_params =
+      params |> Enum.reject(fn {_, value} -> value == :not_set end) |> Enum.into(%{})
+
+    per_page = Map.fetch!(filtered_params, :per_page)
+
+    from(t in Task)
+    |> maybe_filter_by(:status, filtered_params)
+    |> maybe_filter_by(:priority, filtered_params)
+    |> maybe_filter_by(:type, filtered_params)
+    |> maybe_filter_by_id(filtered_params)
+    |> limit(^per_page)
+    |> order_by([t], asc: t.priority, desc: t.id)
+    |> Repo.all()
+  end
+
+  defp maybe_filter_by(query, field, params) when is_map_key(params, field) do
+    filter = [{field, params[field]}]
+    where(query, ^filter)
+  end
+
+  defp maybe_filter_by(query, _, _), do: query
+
+  defp maybe_filter_by_id(query, params) when is_map_key(params, :id) do
+    id = params[:id]
+    where(query, [t], t.id < ^id)
+  end
+
+  defp maybe_filter_by_id(query, _), do: query
+
   @doc """
   Gets a single task.
 
