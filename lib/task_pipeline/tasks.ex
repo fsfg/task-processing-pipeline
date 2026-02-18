@@ -2,14 +2,12 @@ defmodule TaskPipeline.Tasks do
   @moduledoc """
   The Tasks context.
   """
-
   import Ecto.Query, warn: false
-  alias TaskPipeline.Tasks.TaskProgress
-  alias TaskPipeline.Repo
-
-  alias TaskPipeline.Tasks.Task
 
   alias Ecto.Multi
+  alias TaskPipeline.Repo
+  alias TaskPipeline.Tasks.Task
+  alias TaskPipeline.Tasks.TaskProgress
 
   @doc """
   Returns the list of tasks.
@@ -103,9 +101,24 @@ defmodule TaskPipeline.Tasks do
   end
 
   def change_status(%Task{} = task, status) do
-    task
-    |> Task.update_changeset(%{status: status})
-    |> Repo.update()
+    Multi.new()
+    |> Multi.one(:get_old_progress, latest_task_progress(task.id))
+    |> Multi.update(:task, Task.update_changeset(task, %{status: status}))
+    |> Multi.update(
+      :old_task_progress,
+      fn %{get_old_progress: old_progress} ->
+        TaskProgress.changeset(old_progress, %{end_time: DateTime.utc_now()})
+      end
+    )
+    |> Multi.insert(:new_task_progress, fn %{task: task} ->
+      TaskProgress.changeset(%TaskProgress{}, %{
+        start_time: DateTime.utc_now(),
+        status: task.status,
+        task_id: task.id,
+        node_id: TaskPipeline.Nodes.CurrentNode.node_id()
+      })
+    end)
+    |> Repo.transact()
   end
 
   def get_summary do
@@ -147,6 +160,33 @@ defmodule TaskPipeline.Tasks do
 
   """
   def get_task_progress!(id), do: Repo.get!(TaskProgress, id)
+
+  @doc """
+  Gets a latest single task_progress by task_id.
+
+  Raises `Ecto.NoResultsError` if no TaskProgress records was found.
+
+  ## Examples
+
+      iex> get_task_progress_by_task_id!("019c6d48-eb86-7a3d-8ebd-26c08fe5b720")
+      %TaskProgress{}
+
+      iex> get_task_progress_by_task_id!(123)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_task_progress_by_task_id!(task_id) do
+    task_id
+    |> latest_task_progress()
+    |> Repo.one!()
+  end
+
+  defp latest_task_progress(task_id) do
+    from(t in TaskProgress)
+    |> where(task_id: ^task_id)
+    |> order_by([t], desc: t.id)
+    |> limit(1)
+  end
 
   @doc """
   Creates a task_progress.
