@@ -6,6 +6,7 @@ defmodule TaskPipeline.Tasks do
 
   alias Ecto.Multi
   alias TaskPipeline.Repo
+  alias TaskPipeline.PubSub
   alias TaskPipeline.Tasks.Task
   alias TaskPipeline.Tasks.TaskProgress
 
@@ -81,17 +82,22 @@ defmodule TaskPipeline.Tasks do
 
   """
   def create_task(attrs) do
-    Multi.new()
-    |> Multi.insert(:task, Task.create_changeset(%Task{}, attrs))
-    |> Multi.insert(:task_progress, fn %{task: task} ->
-      TaskProgress.changeset(%TaskProgress{}, %{
-        start_time: DateTime.utc_now(),
-        status: task.status,
-        task_id: task.id,
-        node_id: TaskPipeline.Nodes.CurrentNode.node_id()
-      })
-    end)
-    |> Repo.transact()
+    {:ok, %{task: task} = results} =
+      Multi.new()
+      |> Multi.insert(:task, Task.create_changeset(%Task{}, attrs))
+      |> Multi.insert(:task_progress, fn %{task: task} ->
+        TaskProgress.changeset(%TaskProgress{}, %{
+          start_time: DateTime.utc_now(),
+          status: task.status,
+          task_id: task.id,
+          node_id: TaskPipeline.Nodes.CurrentNode.node_id()
+        })
+      end)
+      |> Repo.transact()
+
+    task_status_changed(task.id, nil, task.status)
+
+    {:ok, results}
   end
 
   def create_task!(attrs) do
@@ -101,25 +107,38 @@ defmodule TaskPipeline.Tasks do
   end
 
   def change_status(%Task{} = task, status) do
-    Multi.new()
-    |> Multi.one(:get_old_progress, latest_task_progress(task.id))
-    |> Multi.update(:task, Task.update_changeset(task, %{status: status}))
-    |> Multi.update(
-      :old_task_progress,
-      fn %{get_old_progress: old_progress} ->
-        TaskProgress.changeset(old_progress, %{end_time: DateTime.utc_now()})
-      end
-    )
-    |> Multi.insert(:new_task_progress, fn %{task: task} ->
-      TaskProgress.changeset(%TaskProgress{}, %{
-        start_time: DateTime.utc_now(),
-        status: task.status,
-        task_id: task.id,
-        node_id: TaskPipeline.Nodes.CurrentNode.node_id()
-      })
-    end)
-    |> Repo.transact()
+    result =
+      Multi.new()
+      |> Multi.one(:get_old_progress, latest_task_progress(task.id))
+      |> Multi.update(:task, Task.update_changeset(task, %{status: status}))
+      |> Multi.update(
+        :old_task_progress,
+        fn %{get_old_progress: old_progress} ->
+          TaskProgress.changeset(old_progress, %{end_time: DateTime.utc_now()})
+        end
+      )
+      |> Multi.insert(:new_task_progress, fn %{task: task} ->
+        TaskProgress.changeset(%TaskProgress{}, %{
+          start_time: DateTime.utc_now(),
+          status: task.status,
+          task_id: task.id,
+          node_id: TaskPipeline.Nodes.CurrentNode.node_id()
+        })
+      end)
+      |> Repo.transact()
+
+    task_status_changed(task.id, task.status, status)
+
+    result
   end
+
+  defp task_status_changed(task_id, from, to) do
+    PubSub.broadcast!("tasks", %{id: task_id, from: from, to: to})
+    PubSub.broadcast!("task:" <> task_id, %{from: from, to: to})
+  end
+
+  def subscribe_task_changes(), do: PubSub.subscribe("tasks")
+  def subscribe_task_changes(task_id), do: PubSub.subscribe("tasks" <> task_id)
 
   def get_summary do
     default_values =
