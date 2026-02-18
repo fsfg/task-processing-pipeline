@@ -9,6 +9,7 @@ defmodule TaskPipeline.Tasks do
   alias TaskPipeline.PubSub
   alias TaskPipeline.Tasks.Task
   alias TaskPipeline.Tasks.TaskProgress
+  alias TaskPipeline.Workers
 
   @doc """
   Returns the list of tasks.
@@ -93,11 +94,28 @@ defmodule TaskPipeline.Tasks do
           node_id: TaskPipeline.Nodes.CurrentNode.node_id()
         })
       end)
+      |> Oban.insert("task-" <> attrs["type"], &create_worker/1)
       |> Repo.transact()
 
     task_status_changed(task.id, nil, task.status)
 
     {:ok, results}
+  end
+
+  defp create_worker(%{task: %Task{type: type} = task}) when type == :import do
+    Workers.Import.new(%{task_id: task.id})
+  end
+
+  defp create_worker(%{task: %Task{type: type} = task}) when type == :export do
+    Workers.Export.new(%{task_id: task.id})
+  end
+
+  defp create_worker(%{task: %Task{type: type} = task}) when type == :report do
+    Workers.Report.new(%{task_id: task.id})
+  end
+
+  defp create_worker(%{task: %Task{type: type} = task}) when type == :cleanup do
+    Workers.Cleanup.new(%{task_id: task.id})
   end
 
   def create_task!(attrs) do

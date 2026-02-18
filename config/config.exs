@@ -10,7 +10,13 @@ import Config
 config :task_pipeline, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10],
+  queues: [
+    {:import, 10},
+    {:export, 10},
+    {:report, 10},
+    {:cleanup, 10},
+    default: 10
+  ],
   repo: TaskPipeline.Repo
 
 config :task_pipeline,
