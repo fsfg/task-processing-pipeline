@@ -43,8 +43,7 @@ defmodule TaskPipelineWeb.TaskControllerTest do
                "priority" => "low",
                "status" => "queued",
                "title" => "some title",
-               "type" => "import",
-               "version" => 1
+               "type" => "import"
              } = json_response(conn, 200)["data"]
     end
 
