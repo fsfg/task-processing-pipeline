@@ -70,6 +70,15 @@ defmodule TaskPipeline.Tasks do
   """
   def get_task!(id), do: Repo.get!(Task, id)
 
+  def get_task_with_progress!(id) do
+    from(t in Task,
+      where: t.id == ^id,
+      left_join: p in assoc(t, :progress),
+      preload: [progress: p]
+    )
+    |> Repo.one!()
+  end
+
   @doc """
   Creates a task.
 

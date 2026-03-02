@@ -36,15 +36,15 @@ defmodule TaskPipelineWeb.TaskController do
       conn
       |> put_status(:created)
       |> put_resp_header("location", ~p"/api/tasks/#{task}")
-      |> render(:show, task: task)
+      |> render(:show_brief, task: task)
     else
       {:error, :task, changeset, _} -> {:error, changeset}
     end
   end
 
   def show(conn, %{"id" => id}) do
-    task = Tasks.get_task!(id)
-    render(conn, :show, task: task)
+    task = Tasks.get_task_with_progress!(id)
+    render(conn, :show_full, task: task)
   end
 
   def summary(conn, _) do
