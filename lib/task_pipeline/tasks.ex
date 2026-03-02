@@ -156,7 +156,7 @@ defmodule TaskPipeline.Tasks do
   end
 
   def subscribe_task_changes(), do: PubSub.subscribe("tasks")
-  def subscribe_task_changes(task_id), do: PubSub.subscribe("tasks" <> task_id)
+  def subscribe_task_changes(task_id), do: PubSub.subscribe("task:" <> task_id)
 
   def get_summary do
     default_values =
