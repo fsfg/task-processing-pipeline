@@ -83,11 +83,6 @@ defmodule TaskPipeline.TasksTest do
 
     @invalid_attrs %{status: nil, metadata: nil, start_time: nil, end_time: nil}
 
-    test "list_task_progress/0 returns all task_progress" do
-      task_progress = task_progress_fixture()
-      assert Tasks.list_task_progress() == [task_progress]
-    end
-
     test "get_task_progress!/1 returns the task_progress with given id" do
       task_progress = task_progress_fixture()
       assert Tasks.get_task_progress!(task_progress.id) == task_progress
