@@ -12,7 +12,7 @@ defmodule TaskPipeline.Tasks.Task do
     field :max_attempts, :integer
     field :status, Ecto.Enum, values: TaskStatuses.all_statuses(), default: :queued
     field :version, :integer, default: 1
-    has_many :progress, TaskProgress
+    has_many :progress, TaskProgress, preload_order: [asc: :id]
 
     timestamps()
   end
