@@ -170,19 +170,6 @@ defmodule TaskPipeline.Tasks do
   alias TaskPipeline.Tasks.TaskProgress
 
   @doc """
-  Returns the list of task_progress.
-
-  ## Examples
-
-      iex> list_task_progress()
-      [%TaskProgress{}, ...]
-
-  """
-  def list_task_progress do
-    Repo.all(TaskProgress)
-  end
-
-  @doc """
   Gets a single task_progress.
 
   Raises `Ecto.NoResultsError` if the Task progress does not exist.
