@@ -74,6 +74,7 @@ defmodule TaskPipeline.Tasks do
     from(t in Task,
       where: t.id == ^id,
       left_join: p in assoc(t, :progress),
+      order_by: [asc: p.id],
       preload: [progress: p]
     )
     |> Repo.one!()

@@ -71,8 +71,9 @@ defmodule TaskPipelineWeb.TaskControllerTest do
   describe "get task by id" do
     import TaskPipeline.TasksFixtures
 
-    test "renders full data", %{conn: conn} do
-      %{id: task_id} = task_fixture()
+    test "renders full data with sorted progress", %{conn: conn} do
+      %{id: task_id} = task = task_fixture()
+
       node_id = TaskPipeline.Nodes.CurrentNode.node_id()
 
       conn = get(conn, ~p"/api/tasks/#{task_id}")
@@ -89,6 +90,38 @@ defmodule TaskPipelineWeb.TaskControllerTest do
                  %{
                    "id" => _,
                    "status" => "queued",
+                   "start_time" => _,
+                   "end_time" => nil,
+                   "metadata" => nil,
+                   "node_id" => ^node_id
+                 }
+               ]
+             } = json_response(conn, 200)["data"]
+
+      task |> Tasks.change_status(:processing)
+
+      conn = get(conn, ~p"/api/tasks/#{task_id}")
+
+      assert %{
+               "id" => ^task_id,
+               "max_attempts" => 42,
+               "payload" => %{},
+               "priority" => "low",
+               "status" => "processing",
+               "title" => "some title",
+               "type" => "import",
+               "progress" => [
+                 %{
+                   "id" => _,
+                   "status" => "queued",
+                   "start_time" => _,
+                   "end_time" => _,
+                   "metadata" => nil,
+                   "node_id" => ^node_id
+                 },
+                 %{
+                   "id" => _,
+                   "status" => "processing",
                    "start_time" => _,
                    "end_time" => nil,
                    "metadata" => nil,
