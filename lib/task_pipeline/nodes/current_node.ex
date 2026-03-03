@@ -22,6 +22,16 @@ defmodule TaskPipeline.Nodes.CurrentNode do
 
   if Mix.env() == :test do
     defoverridable(node_id: 0)
-    def node_id(), do: compute_value()
+
+    def node_id() do
+      case Process.get(__MODULE__, :not_set) do
+        :not_set ->
+          Process.put(__MODULE__, compute_value())
+          Process.get(__MODULE__)
+
+        data ->
+          data
+      end
+    end
   end
 end
