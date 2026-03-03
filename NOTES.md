@@ -1,7 +1,7 @@
 
 # Core requirements
 
-Decisions are made based on [mind map](notes_assets/TaskProcessingPipeline.png) created from task requirements.
+Decisions are made based on [mind map](notes_assets/TaskProcessingPipeline.png) ([PDF source](notes_assets/TaskProcessingPipeline.pdf)) created from task requirements.
 
 ## Task data model
 
