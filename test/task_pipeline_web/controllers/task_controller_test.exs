@@ -30,21 +30,16 @@ defmodule TaskPipelineWeb.TaskControllerTest do
   end
 
   describe "create task" do
-    test "renders task when data is valid", %{conn: conn} do
+    test "renders brief task when data is valid", %{conn: conn} do
       conn = post(conn, ~p"/api/tasks", task: @create_attrs)
-      assert %{"id" => id} = json_response(conn, 201)["data"]
-
-      conn = get(conn, ~p"/api/tasks/#{id}")
 
       assert %{
-               "id" => ^id,
-               "max_attempts" => 42,
-               "payload" => %{},
-               "priority" => "low",
-               "status" => "queued",
+               "id" => _,
                "title" => "some title",
-               "type" => "import"
-             } = json_response(conn, 200)["data"]
+               "type" => "import",
+               "priority" => "low",
+               "status" => "queued"
+             } = json_response(conn, 201)["data"]
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
@@ -70,6 +65,37 @@ defmodule TaskPipelineWeb.TaskControllerTest do
       conn = get(conn, ~p"/api/tasks/summary")
 
       assert expected == json_response(conn, 200)["data"]
+    end
+  end
+
+  describe "get task by id" do
+    import TaskPipeline.TasksFixtures
+
+    test "renders full data", %{conn: conn} do
+      %{id: task_id} = task_fixture()
+      node_id = TaskPipeline.Nodes.CurrentNode.node_id()
+
+      conn = get(conn, ~p"/api/tasks/#{task_id}")
+
+      assert %{
+               "id" => ^task_id,
+               "max_attempts" => 42,
+               "payload" => %{},
+               "priority" => "low",
+               "status" => "queued",
+               "title" => "some title",
+               "type" => "import",
+               "progress" => [
+                 %{
+                   "id" => _,
+                   "status" => "queued",
+                   "start_time" => _,
+                   "end_time" => nil,
+                   "metadata" => nil,
+                   "node_id" => ^node_id
+                 }
+               ]
+             } = json_response(conn, 200)["data"]
     end
   end
 

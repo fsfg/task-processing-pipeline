@@ -1,11 +1,12 @@
 defmodule TaskPipeline.TasksTest do
   use TaskPipeline.DataCase, async: true
+  use Oban.Testing, repo: TaskPipeline.Repo
 
   alias TaskPipeline.Tasks
+  alias TaskPipeline.Tasks.Task
+  alias TaskPipeline.Tasks.TaskProgress
 
   describe "tasks" do
-    alias TaskPipeline.Tasks.Task
-
     import TaskPipeline.TasksFixtures
 
     @invalid_attrs %{
@@ -28,7 +29,7 @@ defmodule TaskPipeline.TasksTest do
       assert Tasks.get_task!(task.id) == task
     end
 
-    test "create_task/1 with valid data creates a task" do
+    test "create_task/1 with valid data creates a task, task_progress and Oban job" do
       valid_attrs = %{
         priority: :low,
         type: :import,
@@ -37,7 +38,7 @@ defmodule TaskPipeline.TasksTest do
         payload: %{}
       }
 
-      assert {:ok, %Task{} = task} = Tasks.create_task(valid_attrs)
+      assert {:ok, %Task{id: task_id} = task} = Tasks.create_task(valid_attrs)
       assert task.priority == :low
       assert task.status == :queued
       assert task.type == :import
@@ -45,16 +46,24 @@ defmodule TaskPipeline.TasksTest do
       assert task.max_attempts == 42
       assert task.title == "some title"
       assert task.payload == %{}
+
+      assert %TaskProgress{task_id: ^task_id, status: :queued} =
+               Tasks.get_task_progress_by_task_id!(task_id)
+
+      assert_enqueued(worker: TaskPipeline.Workers.Import, args: %{task_id: task_id})
     end
 
     test "create_task/1 with invalid data returns error changeset" do
       assert {:error, :task, %Ecto.Changeset{}, _} = Tasks.create_task(@invalid_attrs)
     end
 
-    test "change_status/2 with valid data updates status" do
+    test "change_status/2 with valid data updates status and task_progress" do
       task = task_fixture()
-      assert {:ok, %Task{}} = Tasks.change_status(task, :completed)
+      assert {:ok, %Task{id: task_id}} = Tasks.change_status(task, :completed)
       assert task.status !== Tasks.get_task!(task.id).status
+
+      assert %TaskProgress{task_id: ^task_id, status: :completed} =
+               Tasks.get_task_progress_by_task_id!(task_id)
     end
 
     test "change_status/2 with invalid data returns error changeset" do
@@ -77,8 +86,6 @@ defmodule TaskPipeline.TasksTest do
   end
 
   describe "task_progress" do
-    alias TaskPipeline.Tasks.TaskProgress
-
     import TaskPipeline.TasksFixtures
 
     @invalid_attrs %{status: nil, metadata: nil, start_time: nil, end_time: nil}
