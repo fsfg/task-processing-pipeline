@@ -2,6 +2,13 @@ defmodule TaskPipeline.Nodes.NodeInstance do
   use TaskPipeline.Schema
   import Ecto.Changeset
 
+  @type t() :: %__MODULE__{
+          id: String.t(),
+          title: String.t(),
+          last_active: DateTime.t(),
+          inserted_at: DateTime.t()
+        }
+
   schema "nodes" do
     field :title, :string
     field :last_active, :utc_datetime_usec

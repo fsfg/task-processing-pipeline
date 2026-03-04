@@ -1,7 +1,22 @@
 defmodule TaskPipeline.Tasks.TaskProgress do
   use TaskPipeline.Schema
   import Ecto.Changeset
-  alias TaskPipeline.Tasks.TaskStatuses
+  alias TaskPipeline.Nodes.NodeInstance
+  alias TaskPipeline.Tasks.{Task, TaskStatuses}
+
+  @type t() :: %__MODULE__{
+          id: String.t(),
+          start_time: DateTime.t(),
+          end_time: DateTime.t(),
+          status: atom(),
+          metadata: %{optional(String.t()) => any()},
+          task_id: String.t(),
+          task: Ecto.Association.NotLoaded.t() | Task.t(),
+          node_id: String.t(),
+          node: Ecto.Association.NotLoaded.t() | NodeInstance.t(),
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
 
   schema "task_progress" do
     field :start_time, :utc_datetime_usec

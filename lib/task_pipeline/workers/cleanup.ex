@@ -2,12 +2,13 @@ defmodule TaskPipeline.Workers.Cleanup do
   @moduledoc """
   TaskPipeline cleanup task worker
   """
-  use Oban.Worker, queue: :cleanup
+  alias TaskPipeline.Workers.CustomWorker
+  use CustomWorker, queue: :cleanup
 
-  @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"task_id" => task_id} = _args}) do
-    IO.puts("Processing cleanup task: #{task_id}")
+  @impl CustomWorker
+  def process_task(task) do
+    IO.puts("Processing cleanup task: #{task.id}")
 
-    :ok
+    TaskPipeline.Workers.Dummy.perform(task)
   end
 end

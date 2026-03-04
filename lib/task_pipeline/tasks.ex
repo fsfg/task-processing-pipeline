@@ -7,9 +7,10 @@ defmodule TaskPipeline.Tasks do
   alias Ecto.Multi
   alias TaskPipeline.Repo
   alias TaskPipeline.PubSub
-  alias TaskPipeline.Tasks.Task
-  alias TaskPipeline.Tasks.TaskProgress
+  alias TaskPipeline.Tasks.{Task, TaskPriorities, TaskProgress}
   alias TaskPipeline.Workers
+
+  @type create_or_change_task :: {:ok, Task.t()} | {:error, any(), any(), any()}
 
   @doc """
   Returns the list of tasks.
@@ -70,6 +71,8 @@ defmodule TaskPipeline.Tasks do
   """
   def get_task!(id), do: Repo.get!(Task, id)
 
+  def get_task_by_id_and_status!(id, status), do: Repo.get_by!(Task, id: id, status: status)
+
   def get_task_with_progress!(id) do
     from(t in Task,
       where: t.id == ^id,
@@ -80,6 +83,7 @@ defmodule TaskPipeline.Tasks do
     |> Repo.one!()
   end
 
+  @spec create_task(%{required(binary()) => term()}) :: create_or_change_task()
   @doc """
   Creates a task.
 
@@ -114,20 +118,20 @@ defmodule TaskPipeline.Tasks do
     end
   end
 
-  defp create_worker(%{task: %Task{type: type} = task}) when type == :import do
-    Workers.Import.new(%{task_id: task.id})
-  end
+  @workers_mapping %{
+    import: Workers.Import,
+    export: Workers.Export,
+    report: Workers.Report,
+    cleanup: Workers.Cleanup
+  }
 
-  defp create_worker(%{task: %Task{type: type} = task}) when type == :export do
-    Workers.Export.new(%{task_id: task.id})
-  end
+  defp create_worker(%{task: %Task{} = task}) do
+    numerical_priority = TaskPriorities.all_priorities() |> Keyword.get(task.priority)
 
-  defp create_worker(%{task: %Task{type: type} = task}) when type == :report do
-    Workers.Report.new(%{task_id: task.id})
-  end
+    args = %{task_id: task.id}
+    opts = [priority: numerical_priority, max_attempts: task.max_attempts]
 
-  defp create_worker(%{task: %Task{type: type} = task}) when type == :cleanup do
-    Workers.Cleanup.new(%{task_id: task.id})
+    Map.fetch!(@workers_mapping, task.type).new(args, opts)
   end
 
   def create_task!(attrs) do
@@ -136,6 +140,7 @@ defmodule TaskPipeline.Tasks do
     get_task!(task.id)
   end
 
+  @spec change_status(task :: Task.t(), status :: atom()) :: create_or_change_task()
   def change_status(%Task{} = task, status) do
     case Multi.new()
          |> Multi.one(:get_old_progress, latest_task_progress(task.id))

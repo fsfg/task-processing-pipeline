@@ -2,12 +2,13 @@ defmodule TaskPipeline.Workers.Export do
   @moduledoc """
   TaskPipeline export task worker
   """
-  use Oban.Worker, queue: :export
+  alias TaskPipeline.Workers.CustomWorker
+  use CustomWorker, queue: :export
 
-  @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"task_id" => task_id} = _args}) do
-    IO.puts("Processing export task: #{task_id}")
+  @impl CustomWorker
+  def process_task(task) do
+    IO.puts("Processing export task: #{task.id}")
 
-    :ok
+    TaskPipeline.Workers.Dummy.perform(task)
   end
 end
