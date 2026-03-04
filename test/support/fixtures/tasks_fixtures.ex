@@ -8,7 +8,7 @@ defmodule TaskPipeline.TasksFixtures do
   Generate a task.
   """
   def task_fixture(attrs \\ %{}) do
-    {:ok, %{task: task}} =
+    {:ok, task} =
       attrs
       |> Enum.into(%{
         max_attempts: 42,
@@ -28,13 +28,17 @@ defmodule TaskPipeline.TasksFixtures do
   Generate a task_progress.
   """
   def task_progress_fixture(attrs \\ %{}) do
+    %TaskPipeline.Tasks.Task{id: task_id} = task_fixture()
+
     {:ok, task_progress} =
       attrs
       |> Enum.into(%{
         end_time: ~U[2026-02-16 18:43:00.000000Z],
         metadata: %{},
         start_time: ~U[2026-02-16 18:43:00.000000Z],
-        status: :queued
+        status: :queued,
+        task_id: task_id,
+        node_id: TaskPipeline.Nodes.CurrentNode.node_id()
       })
       |> TaskPipeline.Tasks.create_task_progress()
 

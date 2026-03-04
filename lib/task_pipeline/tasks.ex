@@ -88,27 +88,29 @@ defmodule TaskPipeline.Tasks do
       {:ok, %Task{}}
 
       iex> create_task(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
+      {:error, :task, %Ecto.Changeset{}, %{}}
 
   """
   def create_task(attrs) do
-    {:ok, %{task: task} = results} =
-      Multi.new()
-      |> Multi.insert(:task, Task.create_changeset(%Task{}, attrs))
-      |> Multi.insert(:task_progress, fn %{task: task} ->
-        TaskProgress.changeset(%TaskProgress{}, %{
-          start_time: DateTime.utc_now(),
-          status: task.status,
-          task_id: task.id,
-          node_id: TaskPipeline.Nodes.CurrentNode.node_id()
-        })
-      end)
-      |> Oban.insert("task-" <> attrs["type"], &create_worker/1)
-      |> Repo.transact()
+    case Multi.new()
+         |> Multi.insert(:task, Task.create_changeset(%Task{}, attrs))
+         |> Multi.insert(:task_progress, fn %{task: task} ->
+           TaskProgress.changeset(%TaskProgress{}, %{
+             start_time: DateTime.utc_now(),
+             status: task.status,
+             task_id: task.id,
+             node_id: TaskPipeline.Nodes.CurrentNode.node_id()
+           })
+         end)
+         |> Oban.insert("task-" <> Atom.to_string(attrs[:type]), &create_worker/1)
+         |> Repo.transact() do
+      {:ok, %{task: task}} ->
+        task_status_changed(task.id, nil, task.status)
+        {:ok, task}
 
-    task_status_changed(task.id, nil, task.status)
-
-    {:ok, results}
+      error ->
+        error
+    end
   end
 
   defp create_worker(%{task: %Task{type: type} = task}) when type == :import do
@@ -128,35 +130,37 @@ defmodule TaskPipeline.Tasks do
   end
 
   def create_task!(attrs) do
-    {:ok, %{task: task}} = create_task(attrs)
+    {:ok, task} = create_task(attrs)
 
     get_task!(task.id)
   end
 
   def change_status(%Task{} = task, status) do
-    result =
-      Multi.new()
-      |> Multi.one(:get_old_progress, latest_task_progress(task.id))
-      |> Multi.update(:task, Task.update_changeset(task, %{status: status}))
-      |> Multi.update(
-        :old_task_progress,
-        fn %{get_old_progress: old_progress} ->
-          TaskProgress.changeset(old_progress, %{end_time: DateTime.utc_now()})
-        end
-      )
-      |> Multi.insert(:new_task_progress, fn %{task: task} ->
-        TaskProgress.changeset(%TaskProgress{}, %{
-          start_time: DateTime.utc_now(),
-          status: task.status,
-          task_id: task.id,
-          node_id: TaskPipeline.Nodes.CurrentNode.node_id()
-        })
-      end)
-      |> Repo.transact()
+    case Multi.new()
+         |> Multi.one(:get_old_progress, latest_task_progress(task.id))
+         |> Multi.update(:task, Task.update_changeset(task, %{status: status}))
+         |> Multi.update(
+           :old_task_progress,
+           fn %{get_old_progress: old_progress} ->
+             TaskProgress.changeset(old_progress, %{end_time: DateTime.utc_now()})
+           end
+         )
+         |> Multi.insert(:new_task_progress, fn %{task: task} ->
+           TaskProgress.changeset(%TaskProgress{}, %{
+             start_time: DateTime.utc_now(),
+             status: task.status,
+             task_id: task.id,
+             node_id: TaskPipeline.Nodes.CurrentNode.node_id()
+           })
+         end)
+         |> Repo.transact() do
+      {:ok, %{task: %Task{} = task}} ->
+        task_status_changed(task.id, task.status, status)
+        {:ok, task}
 
-    task_status_changed(task.id, task.status, status)
-
-    result
+      error ->
+        error
+    end
   end
 
   defp task_status_changed(task_id, from, to) do
@@ -175,8 +179,6 @@ defmodule TaskPipeline.Tasks do
     |> Repo.all()
     |> Enum.into(default_values)
   end
-
-  alias TaskPipeline.Tasks.TaskProgress
 
   @doc """
   Gets a single task_progress.
