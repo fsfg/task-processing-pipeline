@@ -37,7 +37,7 @@ defmodule TaskPipeline.TasksTest do
         payload: %{}
       }
 
-      assert {:ok, %{task: %Task{} = task}} = Tasks.create_task(valid_attrs)
+      assert {:ok, %Task{} = task} = Tasks.create_task(valid_attrs)
       assert task.priority == :low
       assert task.status == :queued
       assert task.type == :import
@@ -59,7 +59,7 @@ defmodule TaskPipeline.TasksTest do
 
     test "change_status/2 with invalid data returns error changeset" do
       task = task_fixture()
-      assert {:error, %Ecto.Changeset{}} = Tasks.change_status(task, :wrong_status)
+      assert {:error, :task, %Ecto.Changeset{}, _} = Tasks.change_status(task, :wrong_status)
       assert task == Tasks.get_task!(task.id)
     end
 
@@ -89,11 +89,15 @@ defmodule TaskPipeline.TasksTest do
     end
 
     test "create_task_progress/1 with valid data creates a task_progress" do
+      %TaskPipeline.Tasks.Task{id: task_id} = task_fixture()
+
       valid_attrs = %{
         status: :queued,
         metadata: %{},
         start_time: ~U[2026-02-16 18:43:00.000000Z],
-        end_time: ~U[2026-02-16 18:43:00.000000Z]
+        end_time: ~U[2026-02-16 18:43:00.000000Z],
+        task_id: task_id,
+        node_id: TaskPipeline.Nodes.CurrentNode.node_id()
       }
 
       assert {:ok, %TaskProgress{} = task_progress} = Tasks.create_task_progress(valid_attrs)
