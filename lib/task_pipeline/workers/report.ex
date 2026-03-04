@@ -2,12 +2,13 @@ defmodule TaskPipeline.Workers.Report do
   @moduledoc """
   TaskPipeline report task worker
   """
-  use Oban.Worker, queue: :report
+  alias TaskPipeline.Workers.CustomWorker
+  use CustomWorker, queue: :report
 
-  @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"task_id" => task_id} = _args}) do
-    IO.puts("Processing report task: #{task_id}")
+  @impl CustomWorker
+  def process_task(task) do
+    IO.puts("Processing report task: #{task.id}")
 
-    :ok
+    TaskPipeline.Workers.Dummy.perform(task)
   end
 end
