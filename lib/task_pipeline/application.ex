@@ -17,7 +17,8 @@ defmodule TaskPipeline.Application do
       # Start a worker by calling: TaskPipeline.Worker.start_link(arg)
       # {TaskPipeline.Worker, arg},
       # Start to serve requests, typically the last entry
-      TaskPipelineWeb.Endpoint
+      TaskPipelineWeb.Endpoint,
+      TaskPipeline.Nodes.RefreshNodeActivity
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
