@@ -17,7 +17,14 @@ config :task_pipeline, Oban,
     {:cleanup, 10},
     default: 10
   ],
-  repo: TaskPipeline.Repo
+  repo: TaskPipeline.Repo,
+  plugins: [
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"* * * * *", TaskPipeline.Workers.StuckTasks}
+     ]},
+    Oban.Plugins.Lifeline
+  ]
 
 config :task_pipeline,
   ecto_repos: [TaskPipeline.Repo],
