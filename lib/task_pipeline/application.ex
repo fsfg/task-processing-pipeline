@@ -7,19 +7,28 @@ defmodule TaskPipeline.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      TaskPipelineWeb.Telemetry,
-      TaskPipeline.Repo,
-      {TaskPipeline.Nodes.CurrentNode, %{}},
-      {DNSCluster, query: Application.get_env(:task_pipeline, :dns_cluster_query) || :ignore},
-      {Oban, Application.fetch_env!(:task_pipeline, Oban)},
-      {Phoenix.PubSub, name: TaskPipeline.PubSub},
-      # Start a worker by calling: TaskPipeline.Worker.start_link(arg)
-      # {TaskPipeline.Worker, arg},
-      # Start to serve requests, typically the last entry
-      TaskPipelineWeb.Endpoint,
-      TaskPipeline.Nodes.RefreshNodeActivity
-    ]
+    application_children =
+      Application.get_env(
+        :task_pipeline,
+        :application_children,
+        [
+          TaskPipeline.Nodes.RefreshNodeActivity
+        ]
+      )
+
+    children =
+      [
+        TaskPipelineWeb.Telemetry,
+        TaskPipeline.Repo,
+        {TaskPipeline.Nodes.CurrentNode, %{}},
+        {DNSCluster, query: Application.get_env(:task_pipeline, :dns_cluster_query) || :ignore},
+        {Oban, Application.fetch_env!(:task_pipeline, Oban)},
+        {Phoenix.PubSub, name: TaskPipeline.PubSub},
+        # Start a worker by calling: TaskPipeline.Worker.start_link(arg)
+        # {TaskPipeline.Worker, arg},
+        # Start to serve requests, typically the last entry
+        TaskPipelineWeb.Endpoint
+      ] ++ application_children
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
