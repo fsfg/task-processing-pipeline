@@ -1,7 +1,11 @@
 defmodule TaskPipeline.Tasks.Task do
-  use TaskPipeline.Schema
-  import Ecto.Changeset
+  alias __MODULE__
+  alias Ecto.Changeset
   alias TaskPipeline.Tasks.{TaskPriorities, TaskProgress, TaskStatuses}
+
+  import Changeset
+
+  use TaskPipeline.Schema
 
   @type t() :: %__MODULE__{
           id: String.t(),
@@ -42,6 +46,37 @@ defmodule TaskPipeline.Tasks.Task do
     task
     |> cast(attrs, [:status])
     |> validate_required([:status])
+    |> validate_statuses_flow()
     |> optimistic_lock(:version)
   end
+
+  @valid_status_transitions_mapping %{
+    queued: [:processing],
+    processing: [:queued, :completed, :failed],
+    completed: [],
+    failed: []
+  }
+
+  @spec validate_statuses_flow(changeset :: Changeset.t(t())) :: Changeset.t(t())
+  defp validate_statuses_flow(%Changeset{changes: %{status: _}} = changeset) do
+    %Changeset{
+      data: %Task{status: status},
+      changes: %{status: new_status}
+    } = changeset
+
+    valid_transition =
+      @valid_status_transitions_mapping
+      |> Map.fetch!(status)
+      |> Enum.member?(new_status)
+
+    if valid_transition do
+      changeset
+    else
+      changeset
+      |> delete_change(:status)
+      |> add_error(:status, "invalid status transition")
+    end
+  end
+
+  defp validate_statuses_flow(%Changeset{} = changeset), do: changeset
 end

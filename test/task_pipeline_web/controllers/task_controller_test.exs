@@ -132,9 +132,32 @@ defmodule TaskPipelineWeb.TaskControllerTest do
     end
   end
 
-  import TaskPipeline.TasksFixtures
+  alias TaskPipeline.Repo
+  alias TaskPipeline.Tasks.{Task, TaskProgress}
 
   defp create_task_with_status(status) do
-    task_fixture() |> Tasks.change_status(status)
+    {:ok, task} =
+      Repo.transact(fn ->
+        task =
+          Repo.insert!(%Task{
+            title: "some title",
+            type: :import,
+            priority: :low,
+            payload: %{},
+            max_attempts: 42,
+            status: status
+          })
+
+        Repo.insert!(%TaskProgress{
+          start_time: DateTime.utc_now(),
+          status: task.status,
+          task_id: task.id,
+          node_id: TaskPipeline.Nodes.CurrentNode.node_id()
+        })
+
+        {:ok, task}
+      end)
+
+    task
   end
 end
