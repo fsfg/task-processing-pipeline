@@ -21,7 +21,8 @@ config :task_pipeline, Oban,
   plugins: [
     {Oban.Plugins.Cron,
      crontab: [
-       {"* * * * *", TaskPipeline.Workers.StuckTasks}
+       {"* * * * *", TaskPipeline.Workers.StuckTasks},
+       {"30 */2 * * *", TaskPipeline.Workers.AgingJobs}
      ]},
     Oban.Plugins.Lifeline
   ]
