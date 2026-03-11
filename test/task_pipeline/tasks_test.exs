@@ -59,10 +59,10 @@ defmodule TaskPipeline.TasksTest do
 
     test "change_status/2 with valid data updates status and task_progress" do
       task = task_fixture()
-      assert {:ok, %Task{id: task_id}} = Tasks.change_status(task, :completed)
+      assert {:ok, %Task{id: task_id}} = Tasks.change_status(task, :processing)
       assert task.status !== Tasks.get_task!(task.id).status
 
-      assert %TaskProgress{task_id: ^task_id, status: :completed} =
+      assert %TaskProgress{task_id: ^task_id, status: :processing} =
                Tasks.get_task_progress_by_task_id!(task_id)
     end
 
@@ -75,13 +75,17 @@ defmodule TaskPipeline.TasksTest do
     test "change_status/2 concurrent status modification raises an error" do
       task = task_fixture()
       assert task.status == :queued
-      assert {:ok, %Task{}} = Tasks.change_status(task, :processing)
+
+      assert {:ok, %Task{status: :processing} = processing_task} =
+               Tasks.change_status(task, :processing)
+
+      assert {:ok, %Task{status: :failed}} = Tasks.change_status(processing_task, :failed)
 
       assert_raise Ecto.StaleEntryError, fn ->
-        Tasks.change_status(task, :completed)
+        Tasks.change_status(processing_task, :completed)
       end
 
-      assert Tasks.get_task!(task.id).status == :processing
+      assert Tasks.get_task!(processing_task.id).status == :failed
     end
   end
 
