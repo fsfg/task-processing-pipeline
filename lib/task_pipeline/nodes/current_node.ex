@@ -20,6 +20,22 @@ defmodule TaskPipeline.Nodes.CurrentNode do
     TaskPipeline.Nodes.update_node_instance_last_active(node_id())
   end
 
+  @doc """
+  Get current node uptime in seconds
+  """
+  def uptime() do
+    now = System.monotonic_time(:second)
+
+    case :persistent_term.get({__MODULE__, :uptime}, :not_set) do
+      :not_set ->
+        :persistent_term.put({__MODULE__, :uptime}, now)
+        0
+
+      uptime ->
+        now - uptime
+    end
+  end
+
   if Mix.env() == :test do
     defoverridable(node_id: 0)
 
