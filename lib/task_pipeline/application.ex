@@ -7,6 +7,8 @@ defmodule TaskPipeline.Application do
 
   @impl true
   def start(_type, _args) do
+    TaskPipeline.Nodes.CurrentNode.uptime()
+
     application_children =
       Application.get_env(
         :task_pipeline,
