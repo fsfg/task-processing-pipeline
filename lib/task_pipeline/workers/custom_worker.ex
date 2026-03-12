@@ -6,7 +6,15 @@ defmodule TaskPipeline.Workers.CustomWorker do
 
   @callback process_task(Task.t()) :: Oban.Worker.result()
 
-  def perform(module, %Oban.Job{args: %{"task_id" => task_id}, attempt: attempt} = job) do
+  def perform(
+        module,
+        %Oban.Job{
+          args: %{"task_id" => task_id},
+          attempt: attempt,
+          max_attempts: max_attempts
+        } =
+          job
+      ) do
     {:ok, task} =
       task_id
       |> Tasks.get_task_by_id_and_status!(:queued)
@@ -29,7 +37,7 @@ defmodule TaskPipeline.Workers.CustomWorker do
         :ok
 
       {:error, e} ->
-        if attempt > 0 do
+        if attempt < max_attempts do
           Tasks.change_status(processed_task, :queued)
           Oban.Job.update(job, %{priority: priority})
         else
