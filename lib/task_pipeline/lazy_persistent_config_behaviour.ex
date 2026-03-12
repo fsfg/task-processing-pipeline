@@ -1,5 +1,8 @@
 defmodule TaskPipeline.LazyPersistentConfigBehaviour do
   @callback compute_value() :: any()
+  @callback after_init(any()) :: any()
+
+  @optional_callbacks after_init: 1
 
   use GenServer
 
@@ -9,8 +12,17 @@ defmodule TaskPipeline.LazyPersistentConfigBehaviour do
   end
 
   @impl GenServer
-  def init(init_arg) do
-    {:ok, init_arg}
+  def init(%{module: module} = init_arg) do
+    if Code.ensure_loaded?(module) and function_exported?(module, :after_init, 1) do
+      {:ok, init_arg, {:continue, :after_init}}
+    else
+      {:ok, init_arg}
+    end
+  end
+
+  @impl GenServer
+  def handle_continue(:after_init, %{module: module} = state) do
+    module.after_init(state)
   end
 
   @impl GenServer
