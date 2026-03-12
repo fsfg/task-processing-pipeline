@@ -24,8 +24,9 @@ defmodule TaskPipeline.Application do
         TaskPipeline.Repo,
         {TaskPipeline.Nodes.CurrentNode, %{}},
         {DNSCluster, query: Application.get_env(:task_pipeline, :dns_cluster_query) || :ignore},
-        {Oban, Application.fetch_env!(:task_pipeline, Oban)},
         {Phoenix.PubSub, name: TaskPipeline.PubSub},
+        TaskPipeline.MetricsSupervisor,
+        {Oban, Application.fetch_env!(:task_pipeline, Oban)},
         # Start a worker by calling: TaskPipeline.Worker.start_link(arg)
         # {TaskPipeline.Worker, arg},
         # Start to serve requests, typically the last entry
