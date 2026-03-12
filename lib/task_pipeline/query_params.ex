@@ -1,6 +1,5 @@
 defmodule TaskPipeline.QueryParams do
   alias Ecto.Changeset
-  use Ecto.Schema
 
   @not_set :not_set
 

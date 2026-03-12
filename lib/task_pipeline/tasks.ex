@@ -141,7 +141,7 @@ defmodule TaskPipeline.Tasks do
   end
 
   @spec change_status(task :: Task.t(), status :: atom()) :: create_or_change_task()
-  def change_status(%Task{} = task, status) do
+  def change_status(%Task{status: prev_status} = task, status) do
     case Multi.new()
          |> Multi.one(:get_old_progress, latest_task_progress(task.id))
          |> Multi.update(:task, Task.update_changeset(task, %{status: status}))
@@ -151,18 +151,18 @@ defmodule TaskPipeline.Tasks do
              TaskProgress.changeset(old_progress, %{end_time: DateTime.utc_now()})
            end
          )
-         |> Multi.insert(:new_task_progress, fn %{task: task} ->
+         |> Multi.insert(:new_task_progress, fn %{task: t} ->
            TaskProgress.changeset(%TaskProgress{}, %{
              start_time: DateTime.utc_now(),
-             status: task.status,
-             task_id: task.id,
+             status: t.status,
+             task_id: t.id,
              node_id: TaskPipeline.Nodes.CurrentNode.node_id()
            })
          end)
          |> Repo.transact() do
-      {:ok, %{task: %Task{} = task}} ->
-        task_status_changed(task.id, task.status, status)
-        {:ok, task}
+      {:ok, %{task: %Task{} = updated_task}} ->
+        task_status_changed(updated_task.id, prev_status, status)
+        {:ok, updated_task}
 
       error ->
         error
