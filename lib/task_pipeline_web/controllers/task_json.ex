@@ -51,4 +51,8 @@ defmodule TaskPipelineWeb.TaskJSON do
   def summary(%{info: info}) do
     %{data: info}
   end
+
+  def metrics(%{data: data}) do
+    %{data: data}
+  end
 end
