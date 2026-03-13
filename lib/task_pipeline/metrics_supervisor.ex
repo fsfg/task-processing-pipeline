@@ -1,4 +1,9 @@
 defmodule TaskPipeline.MetricsSupervisor do
+  @moduledoc """
+  Set up ETS cache for metrics
+  and supervise Events GenServers
+  """
+
   use Supervisor
 
   @ets_table :metrics
@@ -8,7 +13,9 @@ defmodule TaskPipeline.MetricsSupervisor do
     completed_tasks: [to: :completed],
     process_attempts: [to: :processing],
     restarted_tasks: [from: :processing, to: :queued],
-    failed_tasks: [to: :failed]
+    failed_tasks: [to: :failed],
+    settled_tasks: [from: :processing],
+    queued_tasks: [to: :queued]
   }
 
   def start_link(init_arg) do
@@ -27,7 +34,7 @@ defmodule TaskPipeline.MetricsSupervisor do
       ] ++
         Enum.map(@metrics_config, fn {key, filter} ->
           {TaskPipeline.Tasks.Events,
-           Keyword.merge([ets_key: key, ets_table: @ets_table], filter)}
+           Keyword.merge([ets_table: @ets_table, ets_key: key], filter)}
         end)
 
     Supervisor.init(children, strategy: :one_for_one)

@@ -2,6 +2,7 @@ defmodule TaskPipelineWeb.TaskController do
   use TaskPipelineWeb, :controller
 
   alias Ecto.Changeset
+  alias TaskPipeline.Metrics
   alias TaskPipeline.QueryParams
   alias TaskPipeline.Tasks
   alias TaskPipeline.Tasks.Task
@@ -49,5 +50,9 @@ defmodule TaskPipelineWeb.TaskController do
 
   def summary(conn, _) do
     render(conn, :summary, info: Tasks.get_summary())
+  end
+
+  def metrics(conn, _) do
+    render(conn, :metrics, data: Metrics.get_metrics())
   end
 end
